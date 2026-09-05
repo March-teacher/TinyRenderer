@@ -361,3 +361,24 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+# ============================================================================
+# TinyRenderer 项目自定义规则
+# ============================================================================
+
+# 上面来自 VisualStudio.gitignore 的 "[Oo]bj/" 规则，本意是排除 .NET 的中间产物
+# 目录；但本项目的模型素材恰好也放在 obj/（OBJ 就是模型格式的名字），会被误伤。
+# 这里显式取消忽略——先放行目录本身，再放行目录内容，两条缺一不可：
+# git 不允许在父目录被排除的情况下重新包含其中的文件。
+!obj/
+!obj/**
+
+# 构建产物
+renderer.exe
+.buildtmp/
+build.log
+
+# 渲染输出（docs/ 下的效果图是要提交的，不在此列）
+out/
+output.png
+output.tga
+framebuffer.tga
