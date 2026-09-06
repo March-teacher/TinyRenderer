@@ -376,6 +376,13 @@ FodyWeavers.xsd
 renderer.exe
 .buildtmp/
 build.log
+build/
+cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+install_manifest.txt
+CMakeUserPresets.json
 
 # 渲染输出（docs/ 下的效果图是要提交的，不在此列）
 out/
