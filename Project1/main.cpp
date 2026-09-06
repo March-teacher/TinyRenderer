@@ -188,6 +188,7 @@ namespace {
             "      --no-spec           关闭高光\n"
             "      --shininess <值>    覆盖材质的高光指数 Ns\n"
             "      --checker           强制使用程序化棋盘格作为漫反射贴图\n"
+            "      --mmd               MMD 材质兼容预设：柔和环境光、无写实高光/阴影、双面显示\n"
             "\n"
             "相机:\n"
             "      --eye    x,y,z      相机位置（默认 1,0.55,3.2）\n"
@@ -285,6 +286,15 @@ int main(int argc, char** argv) {
         else if (a == "--no-spec")       opt.spec = false;
         else if (a == "--shininess")     opt.shininess = std::atof(need_value(i, "--shininess"));
         else if (a == "--checker")       force_checker = true;
+        else if (a == "--mmd") {
+            // PMX/MMD 材质通常由 Toon Shader、较强环境光和双面薄片组成；
+            // OBJ/MTL 无法携带这些语义，用一组保守参数避免皮肤塑料高光、
+            // 过黑的自阴影以及发片/飘带因背面剔除而消失。
+            opt.ambient = 0.62;
+            opt.spec    = false;
+            opt.shadow  = false;
+            opt.cull    = false;
+        }
         else if (a == "--eye")    { if (!parse_vec3(need_value(i, "--eye"),    opt.eye))    { std::cerr << "[错误] --eye 格式应为 x,y,z" << std::endl; return 1; } }
         else if (a == "--center") { if (!parse_vec3(need_value(i, "--center"), opt.center)) { std::cerr << "[错误] --center 格式应为 x,y,z" << std::endl; return 1; } }
         else if (a == "--up")     { if (!parse_vec3(need_value(i, "--up"),     opt.up))     { std::cerr << "[错误] --up 格式应为 x,y,z" << std::endl; return 1; } }
