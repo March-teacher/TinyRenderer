@@ -60,6 +60,8 @@ target_link_libraries(renderer PRIVATE tinyrenderer_lib)
 set_target_properties(renderer PROPERTIES
     OUTPUT_NAME renderer
     CXX_EXTENSIONS OFF
+    VS_DEBUGGER_COMMAND_ARGUMENTS "obj/luotianyi/luotianyi.obj --mmd"
+    VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
 )
 
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/Project1 PREFIX Project1 FILES

@@ -164,6 +164,8 @@ static TGAImage render_wireframe(const Scene& scene, const RenderOptions& opt) {
 // ─────────────────────────────────────────────────────────────────────────────
 namespace {
 
+    constexpr const char* default_model_path = "obj/luotianyi/luotianyi.obj";
+
     // 用固定的程序名而不是 argv[0]：argv[0] 是操作系统按本地代码页给的字节串，
     // 而我们已经把控制台切到 UTF-8，直接打印含中文路径的 argv[0] 会显示成乱码。
     void print_usage() {
@@ -172,6 +174,7 @@ namespace {
             "TinyRenderer —— 从零实现的软件光栅化渲染器\n"
             "\n"
             "用法:\n"
+            "  " << exe << "                         渲染默认洛天依素材\n"
             "  " << exe << " [选项] <模型.obj> [更多模型.obj ...]\n"
             "\n"
             "输出:\n"
@@ -207,6 +210,8 @@ namespace {
             "      --no-fit            不把场景归一化到单位立方体\n"
             "\n"
             "示例:\n"
+            "  " << exe << "\n"
+            "  " << exe << " obj/luotianyi/luotianyi.obj --mmd -o luotianyi.png\n"
             "  " << exe << " obj/african_head/african_head.obj --floor -o head.png\n"
             "  " << exe << " obj/african_head/african_head.obj \\\n"
             "      obj/african_head/african_head_eye_inner.obj \\\n"
@@ -245,11 +250,6 @@ int main(int argc, char** argv) {
     // 本地代码页（简体中文环境下是 GBK），不改的话所有中文提示都会变成乱码。
     SetConsoleOutputCP(CP_UTF8);
 #endif
-
-    if (argc < 2) {
-        print_usage();
-        return 1;
-    }
 
     RenderOptions opt;
     std::string output = "output.png";
@@ -310,6 +310,14 @@ int main(int argc, char** argv) {
             return 1;
         }
         else model_paths.push_back(a);
+    }
+
+    if (model_paths.empty() && argc == 1) {
+        model_paths.push_back(default_model_path);
+        opt.ambient = 0.62;
+        opt.spec    = false;
+        opt.shadow  = false;
+        opt.cull    = false;
     }
 
     // ── 参数合法性检查 ────────────────────────────────────────────────────

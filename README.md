@@ -113,6 +113,8 @@
 
 打开 `TinyRenderer.slnx`，选择 `Release | x64`，直接生成。
 
+VS 调试启动已默认使用 `obj\luotianyi\luotianyi.obj --mmd`，工作目录为仓库根目录，按 F5 可以直接渲染仓库内的洛天依素材。
+
 **方式二：命令行**
 
 ```bat
@@ -134,12 +136,19 @@ cmake --build build\cmake-vs --config Release
 ```
 
 CMake 会生成 `tinyrenderer_lib` 和 `renderer` 两个 target：核心渲染代码放在库中，命令行入口单独链接该库。后续添加单元测试时，可以直接复用 `tinyrenderer_lib`。
+CMake 生成的 Visual Studio 工程同样带有默认调试参数：`obj\luotianyi\luotianyi.obj --mmd`。
 
 如果 `cmake` 不在 `PATH` 中，可以使用 Visual Studio 自带的 CMake，或将其所在目录加入 `PATH`。
 
 ### 运行
 
 ```bat
+:: 默认渲染仓库内的洛天依素材
+renderer.exe
+
+:: 显式指定洛天依素材，使用 MMD 兼容预设
+renderer.exe obj\luotianyi\luotianyi.obj --mmd -o luotianyi.png
+
 :: 最简单的一次渲染
 renderer.exe obj\african_head\african_head.obj -o head.png
 
@@ -159,7 +168,7 @@ renderer.exe obj\african_head\african_head.obj --no-normal-map -o off.png
 renderer.exe obj\african_head\african_head.obj                 -o on.png
 ```
 
-渲染自己的模型也可以——把 `.obj` 路径传进去即可。
+无参数运行时，渲染器会默认加载 `obj\luotianyi\luotianyi.obj` 并套用 `--mmd` 预设。渲染自己的模型也可以——把 `.obj` 路径传进去即可。
 模型没有贴图时，渲染器会依次回落到 MTL 的材质颜色、程序化棋盘格，保证总能出图。
 
 ---
@@ -168,6 +177,7 @@ renderer.exe obj\african_head\african_head.obj                 -o on.png
 
 ```
 renderer [选项] <模型.obj> [更多模型.obj ...]
+renderer
 ```
 
 ### 输出
