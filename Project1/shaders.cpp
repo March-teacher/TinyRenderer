@@ -4,16 +4,22 @@
 
 namespace {
 
+    // sRGB 不是线性颜色空间：贴图里 0.5 的灰并不代表"一半亮度"。
+    // 光照乘法如果直接在 sRGB 上做，会让中间调明显偏暗。
+    // 因此：采样贴图后先转线性空间 → 做光照 → 写回图片前再转回 sRGB。
     double srgb_to_linear_channel(const double c) {
         return c <= 0.04045 ? c / 12.92 : std::pow((c + 0.055) / 1.055, 2.4);
     }
 
+    // 线性亮度转回显示器常用的 sRGB 编码。最终 PNG/TGA 里保存的是这个编码值，
+    // 普通图片查看器才能显示出符合预期的亮度。
     double linear_to_srgb_channel(const double c) {
         const double v = std::max(0.0, c);
         return v <= 0.0031308 ? 12.92 * v : 1.055 * std::pow(v, 1.0 / 2.4) - 0.055;
     }
 
     vec3 srgb_to_linear(const vec3& c) {
+        // RGB 三个通道独立转换。alpha 不参与本项目的光照流程。
         return { srgb_to_linear_channel(c.x),
                  srgb_to_linear_channel(c.y),
                  srgb_to_linear_channel(c.z) };
