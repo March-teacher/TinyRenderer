@@ -4,13 +4,41 @@
 
 namespace {
 
-    // 把线性空间的 [0,1] RGB 打包成 TGAColor（内部为 BGRA 序），超范围的值做截断。
-    // 注：这里没有做 gamma 校正，属于有意为之的简化，README 的"已知简化"一节有说明。
+    // sRGB 不是线性颜色空间：贴图里 0.5 的灰并不代表"一半亮度"。
+    // 光照乘法如果直接在 sRGB 上做，会让中间调明显偏暗。
+    // 因此：采样贴图后先转线性空间 → 做光照 → 写回图片前再转回 sRGB。
+    double srgb_to_linear_channel(const double c) {
+        return c <= 0.04045 ? c / 12.92 : std::pow((c + 0.055) / 1.055, 2.4);
+    }
+
+    // 线性亮度转回显示器常用的 sRGB 编码。最终 PNG/TGA 里保存的是这个编码值，
+    // 普通图片查看器才能显示出符合预期的亮度。
+    double linear_to_srgb_channel(const double c) {
+        const double v = std::max(0.0, c);
+        return v <= 0.0031308 ? 12.92 * v : 1.055 * std::pow(v, 1.0 / 2.4) - 0.055;
+    }
+
+    vec3 srgb_to_linear(const vec3& c) {
+        // RGB 三个通道独立转换。alpha 不参与本项目的光照流程。
+        return { srgb_to_linear_channel(c.x),
+                 srgb_to_linear_channel(c.y),
+                 srgb_to_linear_channel(c.z) };
+    }
+
+    // 把 [0,1] RGB 打包成 TGAColor（内部为 BGRA 序），超范围的值做截断。
     TGAColor to_color(const vec3& rgb) {
         auto q = [](const double v) {
             return static_cast<std::uint8_t>(std::lround(std::clamp(v, 0.0, 1.0) * 255));
         };
         return TGAColor{ q(rgb.z), q(rgb.y), q(rgb.x), 255, 3 }; // B, G, R, A
+    }
+
+    // 漫反射贴图是 sRGB 颜色。光照必须在线性空间计算，写回显示图像时再编码为 sRGB。
+    // 调试视图仍使用上面的 to_color，避免法线/UV 数值被显示变换扭曲。
+    TGAColor to_srgb_color(const vec3& linear_rgb) {
+        return to_color({ linear_to_srgb_channel(linear_rgb.x),
+                          linear_to_srgb_channel(linear_rgb.y),
+                          linear_to_srgb_channel(linear_rgb.z) });
     }
 
     // 顶点变换的公共部分：世界坐标 → 裁剪空间齐次坐标
@@ -134,9 +162,9 @@ bool FlatShader::fragment(const vec3& bar, TGAColor& color) {
 
     const double diff = std::max(0.0, n * light.light_dir);   // 兰伯特余弦项
     const vec2 uv = varying_uv * bar;
-    const vec3 albedo = model.diffuse(cur_face, uv);
+    const vec3 albedo = srgb_to_linear(model.diffuse(cur_face, uv));
 
-    color = to_color(albedo * (light.ambient + (1.0 - light.ambient) * diff));
+    color = to_srgb_color(albedo * (light.ambient + (1.0 - light.ambient) * diff));
     return true;
 }
 
@@ -154,9 +182,9 @@ vec4 GouraudShader::vertex(const int iface, const int nthvert) {
 bool GouraudShader::fragment(const vec3& bar, TGAColor& color) {
     const double diff = varying_intensity * bar;              // 三个顶点光强的加权平均
     const vec2 uv = varying_uv * bar;
-    const vec3 albedo = model.diffuse(cur_face, uv);
+    const vec3 albedo = srgb_to_linear(model.diffuse(cur_face, uv));
 
-    color = to_color(albedo * (light.ambient + (1.0 - light.ambient) * diff));
+    color = to_srgb_color(albedo * (light.ambient + (1.0 - light.ambient) * diff));
     return true;
 }
 
@@ -226,14 +254,14 @@ bool PhongShader::fragment(const vec3& bar, TGAColor& color) {
     // ── 合成 ──
     // 环境光不受阴影影响（它代表来自各个方向的间接光），
     // 漫反射和高光则要乘上可见度。
-    const vec3 albedo = model.diffuse(cur_face, uv);
+    const vec3 albedo = srgb_to_linear(model.diffuse(cur_face, uv));
     const vec3 ks     = model.spec_color(cur_face);
     const vec3 lit    = albedo * (light.ambient + (1.0 - light.ambient) * diff * vis)
                       + ks * (spec * vis);
 
-    color = to_color({ lit.x * light.light_color.x,
-                       lit.y * light.light_color.y,
-                       lit.z * light.light_color.z });
+    color = to_srgb_color({ lit.x * light.light_color.x,
+                            lit.y * light.light_color.y,
+                            lit.z * light.light_color.z });
     return true;
 }
 

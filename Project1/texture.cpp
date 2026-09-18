@@ -47,7 +47,11 @@ vec3 Texture::sample(const vec2& uv) const {
     // 所以先减去 0.5 换算到"以纹素中心为格点"的坐标系，再取整数部分和小数部分。
     // 漏掉这个 -0.5 会让贴图整体偏移半个纹素（放大后肉眼可辨）。
     const double x = uv.x * w - 0.5;
-    const double y = uv.y * h - 0.5;
+    // TGAImage::read_tga_file 会把不同 TGA 原点统一成“第 0 行在图像顶部”，
+    // 而 OBJ/OpenGL 的纹理坐标以左下角为 (0,0)，因此采样前要翻转 V。
+    // 不做这一步时，使用图集的模型会采到上下相反的区域，例如脸部读到
+    // 深色区域、衣服读到其他部件的颜色。
+    const double y = (1.0 - uv.y) * h - 0.5;
 
     const double fx = std::floor(x), fy = std::floor(y);
     const double tx = x - fx, ty = y - fy;   // 两个方向上的插值权重，∈[0,1)
